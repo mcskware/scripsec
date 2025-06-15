@@ -33,7 +33,7 @@
             return chunks;
         }
 
-        function confidenceColor(scripture, secular) {
+        function confidenceColor(secular, scripture) {
             const r = Math.floor(255 * (1 - Math.max(secular, scripture)));
             const g = Math.floor(255 * secular);
             const b = Math.floor(255 * scripture);
@@ -76,11 +76,11 @@
                     //console.log("Tokens are ", tokens, "for chunk", i + 1, ":", chunk.substring(0, 50) + '...');
                     const output = await classifier.model(tokens);
                     const logits = output.logits.data;
-                    const [scripture, secular] = softmax(Array.from(logits));
-                    results.push({ chunk, scripture, secular });
+                    const [secular, scripture] = softmax(Array.from(logits));
+                    results.push({ chunk, secular, scripture });
                 } catch (e) {
                     console.error(`❌ Error classifying chunk ${i + 1}:`, e);
-                    results.push({ chunk, scripture: 0.5, secular: 0.5 });
+                    results.push({ chunk, secular: 0.5, scripture: 0.5 });
                 }
 
                 // 🔁 Update progress bar
@@ -97,11 +97,11 @@
             progressContainer.style.display = "none";
 
             results.forEach((r, i) => {
-                const color = confidenceColor(r.scripture, r.secular);
+                const color = confidenceColor(r.secular, r.scripture);
 
                 const heatCell = document.createElement("a");
                 heatCell.href = `#chunk-${i}`;
-                heatCell.title = `Scripture: ${r.scripture.toFixed(2)}, Secular: ${r.secular.toFixed(2)}`;
+                heatCell.title = `Secular: ${r.secular.toFixed(2)}, Scripture: ${r.scripture.toFixed(2)}`;
                 heatCell.style = `background:${color}; width:10px; height:18px; display:inline-block; margin:1px; border-radius:2px;`;
                 heatmapDiv.appendChild(heatCell);
 
@@ -109,7 +109,7 @@
                 div.id = `chunk-${i}`;
                 div.style = `background:${color}; padding:10px; margin:6px; border-radius:4px;`;
                 div.innerHTML = `
-          <div><strong>Chunk ${i + 1}</strong> — Scripture: ${r.scripture.toFixed(2)}, Secular: ${r.secular.toFixed(2)}</div>
+          <div><strong>Chunk ${i + 1}</strong> — Secular: ${r.secular.toFixed(2)}, Scripture: ${r.scripture.toFixed(2)}</div>
           <pre style="white-space:pre-wrap">${r.chunk}</pre>
         `;
                 outputDiv.appendChild(div);
