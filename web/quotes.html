@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Tibetan Quote Highlighter</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 1em;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            margin-bottom: 1em;
+        }
+
+        .heatmap {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 1em;
+        }
+
+        .heatbox {
+            width: 10px;
+            height: 10px;
+            margin: 1px;
+            border: 1px solid #ccc;
+        }
+
+        .opener {
+            background-color: #d0f0fd;
+        }
+
+        .inquote {
+            background-color: #fef7cb;
+        }
+
+        .closer {
+            background-color: #ffd0d0;
+        }
+
+        .none {
+            background-color: white;
+        }
+
+        .highlight span {
+            padding: 0 2px;
+            border-radius: 3px;
+        }
+
+        .clause {
+            margin-bottom: 0.3em;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Tibetan Quote Highlighter</h1>
+    <p>Paste Wylie-transcribed Tibetan below:</p>
+    <textarea id="inputText"></textarea>
+    <button onclick="processText()">Highlight Quotes</button>
+
+    <h2>Quote Detection Heatmap</h2>
+    <div class="heatmap" id="heatmap"></div>
+    <div id="outputText" class="highlight"></div>
+
+    <script>
+        const openers = [
+            "las kyang ji skad du", "las kyang", "las", "ji skad du", "las 'byung ba", "las ji skad du",
+            "de bzhin du", "nas", "de'i phyir"
+        ].sort((a, b) => b.length - a.length);
+        const closers = [
+            "zhes ji skad gsungs pa lta bu'o", "zhes 'byung ngo", "zhes gsungs pa'i phyir ro", "zhes gsungs pa nyid blta bar bya'o",
+            "zhes gsungs pa lta bu'o", "ces gsungs pa'i phyir ro", "ces gsungs pa lta bu'o", "zhes bshad pa'i phyir ro",
+            "zhes bshad pa lta bu'o", "ces bya ba gsungs te", "zhes rgya cher gsungs pa lta bu'o",
+            "zhes gsungs pa yin no", "zhes rgya cher gsungs so", "zhes gsungs pa'o",
+            "zhes gsungs te", "zhes gsungs pa", "ces gsungs te", "ces gsungs pa",
+            "zhes bya ba gsungs so", "gsungs pa lta bu'o", "zhes gsungs", "gsungs so",
+            "zhes bshad do", "zhes pa", "zhe'o", "zhes"
+        ].sort((a, b) => b.length - a.length);
+
+        const openerRegex = new RegExp(openers.map(o => `\\b${o}\\b`).join("|"));
+        const closerRegex = new RegExp(closers.map(c => `\\b${c}\\b`).join("|"));
+
+        function splitClauses(text) {
+            const multiline = text.replace(/(\s*\/(\s*\/)?\s*)/g, " $1\n");
+            return multiline.split(/\n/g).map(t => t.trim()).filter(Boolean);
+            //return text.split(/[/\s]+/).map(t => t.trim()).filter(Boolean);
+        }
+
+        function detectQuotes(clauses) {
+            const labels = Array(clauses.length).fill("none");
+            let i = 0;
+            while (i < clauses.length) {
+                const clause = clauses[i];
+                const matchOpener = clause.match(openerRegex);
+                if (matchOpener) {
+                    for (let j = i + 1; j < clauses.length; j++) {
+                        const matchCloser = clauses[j].match(closerRegex);
+                        if (matchCloser) {
+                            if ((matchOpener[0] === "las" || matchOpener[0] === "nas") && matchCloser[0] === "zhes") {
+                                continue; // ambiguous case
+                            }
+                            const quoteContent = clauses.slice(i + 1, j).join(" ");
+                            if (quoteContent.length <= 500) {
+                                labels[i] = "opener";
+                                for (let k = i + 1; k < j; k++) labels[k] = "inquote";
+                                labels[j] = "closer";
+                                i = j;
+                            }
+                            break;
+                        }
+                    }
+                }
+                i++;
+            }
+            return labels;
+        }
+
+        function renderOutput(clauses, labels) {
+            const heatmapDiv = document.getElementById("heatmap");
+            const outputDiv = document.getElementById("outputText");
+            heatmapDiv.innerHTML = "";
+            outputDiv.innerHTML = "";
+
+            for (let i = 0; i < labels.length; i++) {
+                const colorClass = labels[i];
+                const box = document.createElement("div");
+                box.className = `heatbox ${colorClass}`;
+                heatmapDiv.appendChild(box);
+            }
+
+            clauses.forEach((clause, i) => {
+                const span = document.createElement("span");
+                span.className = labels[i];
+                span.innerText = clause;
+
+                const div = document.createElement("div");
+                div.className = "clause";
+                div.appendChild(document.createTextNode(`${i.toString().padStart(4, '0')}: `));
+                div.appendChild(span);
+                outputDiv.appendChild(div);
+            });
+        }
+
+        function processText() {
+            let input = document.getElementById("inputText").value.replace(/[\r\n]+/g, " ");
+            input = input.replace(/\|/g, "/");
+            input = input.replace(/\’/g, "'");
+            const clauses = splitClauses(input);
+            const labels = detectQuotes(clauses);
+            renderOutput(clauses, labels);
+        }
+    </script>
+</body>
+
+</html>
