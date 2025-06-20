@@ -133,13 +133,17 @@
 
             for (let i = 0; i < labels.length; i++) {
                 const colorClass = labels[i];
+                const anchor = document.createElement("a");
+                anchor.href = `#line-${i.toString().padStart(4, '0')}`;
                 const box = document.createElement("div");
                 box.className = `heatbox ${colorClass}`;
-                heatmapDiv.appendChild(box);
+                anchor.appendChild(box);
+                heatmapDiv.appendChild(anchor);
             }
 
             clauses.forEach((clause, i) => {
                 const div = document.createElement("div");
+                div.id = `line-${i.toString().padStart(4, '0')}`;
                 div.className = "clause";
                 div.innerHTML = `<strong>${i.toString().padStart(4, '0')}:</strong> `;
 
