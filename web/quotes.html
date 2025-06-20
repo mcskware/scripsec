@@ -119,6 +119,12 @@
             return labels;
         }
 
+        function escapeHTML(str) {
+            return str.replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
         function renderOutput(clauses, labels) {
             const heatmapDiv = document.getElementById("heatmap");
             const outputDiv = document.getElementById("outputText");
@@ -133,17 +139,45 @@
             }
 
             clauses.forEach((clause, i) => {
-                const span = document.createElement("span");
-                span.className = labels[i];
-                span.innerText = clause;
-
                 const div = document.createElement("div");
                 div.className = "clause";
-                div.appendChild(document.createTextNode(`${i.toString().padStart(4, '0')}: `));
-                div.appendChild(span);
+                div.innerHTML = `<strong>${i.toString().padStart(4, '0')}:</strong> `;
+
+                const label = labels[i];
+
+                if (label === "opener") {
+                    const match = clause.match(openerRegex);
+                    if (match) {
+                        const matched = match[0];
+                        const start = clause.indexOf(matched);
+                        const before = clause.slice(0, start);
+                        const after = clause.slice(start + matched.length);
+                        div.innerHTML += `${escapeHTML(before)}<span class="opener">${escapeHTML(matched)}</span><span class="inquote">${escapeHTML(after)}</span>`;
+                    } else {
+                        div.innerHTML += escapeHTML(clause);
+                    }
+                } else if (label === "closer") {
+                    const match = clause.match(closerRegex);
+                    if (match) {
+                        const matched = match[0];
+                        const start = clause.indexOf(matched);
+                        const before = clause.slice(0, start);
+                        const after = clause.slice(start + matched.length);
+                        div.innerHTML += `<span class="inquote">${escapeHTML(before)}</span><span class="closer">${escapeHTML(matched)}</span>${escapeHTML(after)}`;
+                    } else {
+                        div.innerHTML += escapeHTML(clause);
+                    }
+                } else if (label === "inquote") {
+                    div.innerHTML += `<span class="inquote">${escapeHTML(clause)}</span>`;
+                } else {
+                    div.innerHTML += escapeHTML(clause);
+                }
+
                 outputDiv.appendChild(div);
             });
         }
+
+
 
         function processText() {
             let input = document.getElementById("inputText").value.replace(/[\r\n]+/g, " ");
